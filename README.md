@@ -30,3 +30,5 @@ The table below is obtained using [hyperfine](https://github.com/sharkdp/hyperfi
 | `complex`      | 390.0             | 681.1            | 1545             |
 | `float`        | 322.7             | 576.1            | 1289             |
 | `fixed`        | 242.1             | 428.7            | 956.6            |
+
+![Benchmark CPU Graph](./img/benchmark_cpu.png)
