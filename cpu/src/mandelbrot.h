@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 
-#include "common.h"
+#include "fixed_point.h"
+#include "image.h"
 
 #define MAX_ITER 128
 
@@ -14,10 +15,8 @@ typedef enum
     MBROT_ITER_FIXED
 } mbrot_iter_t;
 
-void mbrot_iter_cmplx(float real[SCREEN_W], float imag[SCREEN_H], uint8_t iter[SCREEN_H][SCREEN_W]);
-void mbrot_iter_float(float real[SCREEN_W], float imag[SCREEN_H], uint8_t iter[SCREEN_H][SCREEN_W]);
-void mbrot_iter_fixed(fixed real[SCREEN_W], fixed imag[SCREEN_H], uint8_t iter[SCREEN_H][SCREEN_W]);
-
-void mbrot_iter_to_pixel(uint8_t iter[SCREEN_H][SCREEN_W], pixel_t pic[SCREEN_H][SCREEN_W]);
+void mbrot_compute_cmplx(float *real, float *imag, image_t *img);
+void mbrot_compute_float(float *real, float *imag, image_t *img);
+void mbrot_compute_fixed(fixed *real, fixed *imag, image_t *img);
 
 #endif

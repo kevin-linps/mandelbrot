@@ -1,83 +1,113 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
-#include "../lib/libbmp.h"
-
+#include "image.h"
 #include "mandelbrot.h"
+
+static mbrot_iter_t iter_type = MBROT_ITER_CMPLX;
+static float x_min = -2.52f, x_max = 1.0f, y_min = -0.99f, y_max = 0.99f;
+static int img_w = 1920, img_h = 1080;
+
+void parse_args(int argc, char *argv[]);
+void generate_array_float(float *arr, int size, float start, float end);
+void generate_array_fixed(fixed *arr, int size, float start, float end);
 
 int main(int argc, char *argv[])
 {
-    float x[SCREEN_W], y[SCREEN_H];
-    fixed x_fixed[SCREEN_W], y_fixed[SCREEN_H];
-    uint8_t iter[SCREEN_H][SCREEN_W];
-    pixel_t pic[SCREEN_H][SCREEN_W];
-    mbrot_iter_t iter_type = MBROT_ITER_FLOAT;
+    parse_args(argc, argv);
 
-    int opt;
-    while ((opt = getopt(argc, argv, "cfx")) != -1)
-    {
-        switch (opt)
-        {
-        case 'c':
-            iter_type = MBROT_ITER_CMPLX;
-            break;
-        case 'f':
-            iter_type = MBROT_ITER_FLOAT;
-            break;
-        case 'x':
-            iter_type = MBROT_ITER_FIXED;
-            break;
-        default:
-            break;
-        }
-    }
+    image_t pic;
+    image_init(&pic, img_w, img_h);
+
+    float *real, *imag;
+    real = malloc(img_w * sizeof(float));
+    imag = malloc(img_h * sizeof(float));
 
     clock_t start = clock();
     switch (iter_type)
     {
     case MBROT_ITER_CMPLX:
-        /* code */
-        for (int i = 0; i < SCREEN_W; i++)
-            x[i] = -2.5f + i * (3.556f / SCREEN_W);
-        for (int i = 0; i < SCREEN_H; i++)
-            y[i] = -1.0f + i * (2.0f / SCREEN_H);
-        mbrot_iter_cmplx(x, y, iter);
+        generate_array_float(real, img_w, x_min, x_max);
+        generate_array_float(imag, img_h, y_min, y_max);
+        mbrot_compute_cmplx(real, imag, &pic);
         break;
     case MBROT_ITER_FLOAT:
-        /* code */
-        for (int i = 0; i < SCREEN_W; i++)
-            x[i] = -2.5f + i * (3.556f / SCREEN_W);
-        for (int i = 0; i < SCREEN_H; i++)
-            y[i] = -1.0f + i * (2.0f / SCREEN_H);
-        mbrot_iter_float(x, y, iter);
+        generate_array_float(real, img_w, x_min, x_max);
+        generate_array_float(imag, img_h, y_min, y_max);
+        mbrot_compute_float(real, imag, &pic);
         break;
     case MBROT_ITER_FIXED:
-        /* code */
-        for (int i = 0; i < SCREEN_W; i++)
-            x_fixed[i] = float2fixed(-2.5f + i * (3.556f / SCREEN_W));
-        for (int i = 0; i < SCREEN_H; i++)
-            y_fixed[i] = float2fixed(-1.0f + i * (2.000f / SCREEN_H));
-        mbrot_iter_fixed(x_fixed, y_fixed, iter);
+        generate_array_fixed((fixed *)real, img_w, x_min, x_max);
+        generate_array_fixed((fixed *)imag, img_h, y_min, y_max);
+        mbrot_compute_fixed((fixed *)real, (fixed *)imag, &pic);
         break;
     default:
-        break;
+        printf("Invalid iteration method\n");
+        return -1;
     }
     clock_t end = clock();
     printf("Time: %f\n", (double)(end - start) / CLOCKS_PER_SEC);
-    mbrot_iter_to_pixel(iter, pic);
 
-    bmp_img img;
-    bmp_img_init_df(&img, SCREEN_W, SCREEN_H);
-    for (size_t x = 0; x < SCREEN_H; x++)
-    {
-        for (size_t y = 0; y < SCREEN_W; y++)
-        {
-            bmp_pixel_init(&img.img_pixels[x][y], pic[x][y].r, pic[x][y].g, pic[x][y].b);
-        }
-    }
-    bmp_img_write(&img, "mandelbrot.bmp");
-    bmp_img_free(&img);
+    image_write(&pic, "mandelbrot.ppm");
+    image_free(&pic);
+
+    free(real);
+    free(imag);
 
     return 0;
+}
+
+void parse_args(int argc, char *argv[])
+{
+    int opt;
+    while ((opt = getopt(argc, argv, "c:w:h:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'c':
+            if (strcmp(optarg, "complex") == 0)
+            {
+                iter_type = MBROT_ITER_CMPLX;
+            }
+            else if (strcmp(optarg, "float") == 0)
+            {
+                iter_type = MBROT_ITER_FLOAT;
+            }
+            else if (strcmp(optarg, "fixed") == 0)
+            {
+                iter_type = MBROT_ITER_FIXED;
+            }
+            break;
+        case 'w':
+            img_w = atoi(optarg);
+            break;
+        case 'h':
+            img_h = atoi(optarg);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+void generate_array_float(float *arr, int size, float start, float end)
+{
+    float delta = (end - start) / size;
+    for (int i = 0; i < size; i++)
+    {
+        arr[i] = start + i * delta;
+    }
+}
+
+void generate_array_fixed(fixed *arr, int size, float start, float end)
+{
+    fixed start_fixed = float2fixed(start);
+    fixed delta = float2fixed((end - start) / size);
+    for (int i = 0; i < size; i++)
+    {
+        arr[i] = start_fixed + i * delta;
+    }
 }
